@@ -1,0 +1,78 @@
+---
+title: "nflrushing animate"
+output: html_document
+date: '2022-06-23'
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(nflfastR)
+library(nflreadr)
+library(tidyverse)
+library(gganimate)
+library(nflplotR)
+library(ggimage)
+
+
+```
+
+load season stats and filter
+
+```{r}
+season2021 <- load_player_stats(2021)
+season2021 %>% view()
+top_rush <- season2021 %>% 
+  group_by(player_id) %>% 
+    filter(season_type == "REG", sum(rushing_yards) > 900) %>% 
+  ungroup()
+
+top_rush <- top_rush %>% 
+  group_by(player_name) %>% 
+  mutate(cumulative_rush = cumsum(rushing_yards)) %>% 
+  ungroup()
+
+top_rush <- top_rush %>% 
+  select(player_id, player_name, recent_team, week, carries, rushing_yards, rushing_tds, rushing_fumbles, rushing_epa, rushing_first_downs, fantasy_points_ppr, cumulative_rush )
+
+top_rush$game <- seq_along(top_rush$player_name)
+
+top_rush %>% count(player_name)
+top_rush <- top_rush %>% 
+  rename(team_abbr = recent_team)
+
+top_rush <- top_rush %>% 
+  left_join(teams_colors_logos, by = c("team_abbr" = "team_abbr"))
+
+```
+
+now for graphs
+
+```{r}
+
+top_rush %>% 
+  ggplot(aes(cumulative_rush, player_name, color = player_name)) +
+  geom_col() + 
+  transition_time(week)
+
+top_rush %>% 
+  ggplot(aes(week, cumulative_rush, group = player_name)) +
+  geom_line() +
+  geom_point() +
+  transition_reveal(week)
+
+
+top_rush %>% 
+  ggplot(aes(week, cumulative_rush, group = player_name)) + 
+  geom_image(aes(image = team_logo_espn), width = 0.03, alpha = 0.7)
+
+top_rush %>%
+  # filter(player_name == "J.Taylor") %>% 
+  ggplot(aes(week, cumulative_rush, group = player_name)) +
+  geom_line() +
+  geom_image(aes(image = team_logo_espn), size = .05) #+
+  transition_reveal(week)
+
+
+
+```
+
