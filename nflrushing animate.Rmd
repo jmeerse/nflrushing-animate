@@ -12,6 +12,7 @@ library(tidyverse)
 library(gganimate)
 library(nflplotR)
 library(ggimage)
+library(glue)
 
 
 ```
@@ -23,7 +24,7 @@ season2021 <- load_player_stats(2021)
 season2021 %>% view()
 top_rush <- season2021 %>% 
   group_by(player_id) %>% 
-    filter(season_type == "REG", sum(rushing_yards) > 900) %>% 
+    filter(season_type == "REG", sum(rushing_yards) > 936) %>% 
   ungroup()
 
 top_rush <- top_rush %>% 
@@ -65,14 +66,54 @@ top_rush %>%
   ggplot(aes(week, cumulative_rush, group = player_name)) + 
   geom_image(aes(image = team_logo_espn), width = 0.03, alpha = 0.7)
 
-top_rush %>%
-  # filter(player_name == "J.Taylor") %>% 
+animation <- top_rush %>%
+  filter(player_name == "J.Taylor") %>% 
   ggplot(aes(week, cumulative_rush, group = player_name)) +
   geom_line() +
-  geom_image(aes(image = team_logo_espn), size = .05) #+
-  transition_reveal(week)
+  geom_image(aes(image = team_logo_espn), size = .05) +
+  transition_reveal(week) +
+  ggtitle('Rushing Total by Week')
 
-
+animate(animation, end_pause = 10)
 
 ```
 
+Just D.Henry
+
+```{r}
+dhenry <- load_player_stats(2016:2021) %>% filter(player_name == "D.Henry")
+
+dhenry <- dhenry %>% filter(season_type == "REG")
+
+dhenry <- dhenry %>% 
+  select(player_name, recent_team, rushing_yards, rushing_epa, rushing_first_downs, season, week)
+
+dhenry <- dhenry %>% 
+  group_by(season) %>% 
+  mutate(cumrush = cumsum(rushing_yards)) %>% 
+  ungroup()
+
+dhenry <- dhenry %>%
+  left_join(teams_colors_logos, by = c("recent_team" = "team_abbr"))
+
+dh <- dhenry %>% 
+  ggplot(aes(week, cumrush, group = season, label = season, color = season)) +
+  labs(x = "Week", 
+       y = "Season Total Rushing Yards",
+       title = "Derrick Henry Rushing Yards by Season",
+       subtitle = "What could have happened in 2021?",
+       caption = "@jmeerse  Data: nflfastR") +
+  scale_x_continuous(breaks = seq(1, 17),
+                     limits = c(1, 18)) +
+  geom_line(size = 1) + 
+  geom_text(size = 5) +
+  theme_classic()
+
+dh
+
+animate(dh + transition_reveal(dhenry$week), end_pause = 30, width=900, height=506)
+
+
+anim_save("DHenry.gif")
+
+```
