@@ -144,25 +144,36 @@ pmja <- pmja %>%
 pmja <- pmja %>% 
   left_join(teams_colors_logos, by = c("recent_team" = "team_abbr"))
 
-pmja %>% 
+maxqbs <- pmja %>% group_by(player_name) %>% 
+  summarise(maxgame = max(game_no), maxepa = max(cum_epa)) %>% 
+  ungroup() #df of just maxes, maybe could use for image locations?
+
+pmja %>%  
   ggplot(aes(x = game_no, y = cum_epa, group = player_name)) +
-  #geom_line() +
-  geom_image(aes(image = team_logo_espn), size = 0.05)
+  geom_line() +
+  geom_image(data = filter(pmja, player_name == "J.Allen"),aes(x = max(game_no), y = max(cum_epa), image = team_logo_espn), size = 0.08) +
+  geom_image(data = filter(pmja, player_name == "P.Mahomes"),aes(x = max(game_no), y = max(cum_epa), image = team_logo_espn), size = 0.08)
+```  
+
+help!?!
+```{r}
+#example for stack.overflow question
+name <- c("a", "a", "b", "b", "b") 
+game <- c(1, 2, 1, 2, 3) 
+pts <- c(3, 6, 1, 6, 7) 
+cum_pts <- c(3, 9, 1, 7, 14) 
+
+pics <- c("https://a.espncdn.com/i/teamlogos/nfl/500/buf.png", "https://a.espncdn.com/i/teamlogos/nfl/500/buf.png", "https://a.espncdn.com/i/teamlogos/nfl/500/kc.png", "https://a.espncdn.com/i/teamlogos/nfl/500/kc.png", "https://a.espncdn.com/i/teamlogos/nfl/500/kc.png")
+
+df <- data.frame(name, game, pts, cum_pts, pics)
+
+df %>%  
+  ggplot(aes(x = game, y = cum_pts, group = name)) +
+  geom_line() +
+  geom_image(data = filter(df, name == "a"),aes(x = max(game), y = max(cum_pts), image = pics), size = 0.08) +
+  geom_image(data = filter(df, name == "b"),aes(x = max(game), y = max(cum_pts), image = pics), size = 0.08)
 
 
-
-
-library("ggplot2")
-library("ggimage")
-set.seed(2017-02-21)
-d <- data.frame(x = rnorm(10),
-                y = rnorm(10),
-                image = sample(c("https://www.r-project.org/logo/Rlogo.png",
-                                "https://jeroenooms.github.io/images/frink.png"),
-                              size=10, replace = TRUE)
-               )
-ggplot(d, aes(x, y)) + geom_image(aes(image=image))
-# }
 
 
 ```
