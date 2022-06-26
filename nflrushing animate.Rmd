@@ -14,6 +14,7 @@ library(nflplotR)
 library(ggimage)
 library(glue)
 
+options(scipen = 999)
 
 ```
 
@@ -117,3 +118,52 @@ animate(dh + transition_reveal(dhenry$week), end_pause = 30, width=900, height=5
 anim_save("DHenry.gif")
 
 ```
+
+Now let's compare QBs
+
+```{r}
+pmja <- load_player_stats(2017:2021) %>% filter(player_name == "P.Mahomes" | player_name == "J.Allen" & recent_team == "BUF")
+
+pmja <- pmja %>% filter(season_type == "REG")
+
+#try to number by games played
+pmja <- pmja %>% 
+  arrange(player_name) #groups players
+
+length(pmja$player_name)
+
+pmja %>% group_by(player_name) %>% summarise(n = n())
+
+pmja$game_no <- sequence(c(57, 63))
+
+pmja <- pmja %>% 
+  group_by(player_name) %>% 
+  mutate(cum_epa = cumsum(passing_epa)) %>% 
+  ungroup()
+
+pmja <- pmja %>% 
+  left_join(teams_colors_logos, by = c("recent_team" = "team_abbr"))
+
+pmja %>% 
+  ggplot(aes(x = game_no, y = cum_epa, group = player_name)) +
+  #geom_line() +
+  geom_image(aes(image = team_logo_espn), size = 0.05)
+
+
+
+
+library("ggplot2")
+library("ggimage")
+set.seed(2017-02-21)
+d <- data.frame(x = rnorm(10),
+                y = rnorm(10),
+                image = sample(c("https://www.r-project.org/logo/Rlogo.png",
+                                "https://jeroenooms.github.io/images/frink.png"),
+                              size=10, replace = TRUE)
+               )
+ggplot(d, aes(x, y)) + geom_image(aes(image=image))
+# }
+
+
+```
+
