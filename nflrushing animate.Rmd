@@ -10,7 +10,6 @@ library(nflfastR)
 library(nflreadr)
 library(tidyverse)
 library(gganimate)
-library(nflplotR)
 library(ggimage)
 library(glue)
 
@@ -20,7 +19,7 @@ options(scipen = 999)
 
 load season stats and filter
 
-```{r}
+```{r load season stats and filter}
 season2021 <- load_player_stats(2021)
 season2021 %>% view()
 top_rush <- season2021 %>% 
@@ -49,7 +48,7 @@ top_rush <- top_rush %>%
 
 now for graphs
 
-```{r}
+```{r now for graphs}
 
 top_rush %>% 
   ggplot(aes(cumulative_rush, player_name, color = player_name)) +
@@ -81,7 +80,7 @@ animate(animation, end_pause = 10)
 
 Just D.Henry
 
-```{r}
+```{r Just D. Henry}
 dhenry <- load_player_stats(2016:2021) %>% filter(player_name == "D.Henry")
 
 dhenry <- dhenry %>% filter(season_type == "REG")
@@ -121,39 +120,65 @@ anim_save("DHenry.gif")
 
 Now let's compare QBs
 
-```{r}
-pmja <- load_player_stats(2017:2021) %>% filter(player_name == "P.Mahomes" | player_name == "J.Allen" & recent_team == "BUF")
+```{r let's compare QBs}
+qbs <- load_player_stats(2017:2021) 
 
-pmja <- pmja %>% filter(season_type == "REG")
+qbs <- qbs %>% filter(season_type == "REG")
+
+qbs <- qbs %>% group_by(player_id) %>% 
+  filter(sum(passing_yards) > 3000) %>% 
+  ungroup()
 
 #try to number by games played
-pmja <- pmja %>% 
-  arrange(player_name) #groups players
+qbs <- qbs %>% 
+  arrange(player_id) #groups players by id, since names vary
 
-length(pmja$player_name)
+tot_games <- qbs %>% group_by(player_id) %>% summarise(n = n())
 
-pmja %>% group_by(player_name) %>% summarise(n = n())
+qbs$game_no <- sequence(c(tot_games$n)) #can't believe this worked!
 
-pmja$game_no <- sequence(c(57, 63))
+qbs <- qbs %>% 
+  group_by(player_id) %>% 
+  filter(max(game_no) > 40) %>% 
+  ungroup()
 
-pmja <- pmja %>% 
-  group_by(player_name) %>% 
+qbs <- qbs %>% 
+  group_by(player_id) %>% 
   mutate(cum_epa = cumsum(passing_epa)) %>% 
   ungroup()
 
-pmja <- pmja %>% 
+qbs <- qbs %>% 
   left_join(teams_colors_logos, by = c("recent_team" = "team_abbr"))
 
-maxqbs <- pmja %>% group_by(player_name) %>% 
-  summarise(maxgame = max(game_no), maxepa = max(cum_epa)) %>% 
-  ungroup() #df of just maxes, maybe could use for image locations?
 
-pmja %>%  
-  ggplot(aes(x = game_no, y = cum_epa, group = player_name)) +
-  geom_line() +
-  geom_image(data = filter(pmja, player_name == "J.Allen"),aes(x = max(game_no), y = max(cum_epa), image = team_logo_espn), size = 0.08) +
-  geom_image(data = filter(pmja, player_name == "P.Mahomes"),aes(x = max(game_no), y = max(cum_epa), image = team_logo_espn), size = 0.08)
+qbs_image <- qbs %>%  
+  group_by(player_id)  %>%  
+  slice_max(order_by = game_no, n = 1)
+
+ggplot(qbs, aes(x = game_no, 
+                 y = cum_epa, 
+                 group = player_id)) +
+      labs(x = "game number",
+            y = "cumulative passing EPA",
+            title = "Total Passing EPA",
+            subtitle = "Since 2017, at least 40 games played") + 
+  geom_line(color = qbs$team_color) +
+  geom_image(data = qbs_image, aes(x = game_no, 
+                                  y = cum_epa, 
+                                  image = team_logo_espn), 
+             size = 0.08)
+
+#still need key and there's at least one missing image and should either recode player names or group better (id, season, week)
+
 ```  
+
+
+
+
+
+
+
+
 
 help!?!
 ```{r}
